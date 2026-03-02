@@ -28,6 +28,9 @@
 *.so.*
 *.dylib
 
+# Allow reference DLLs needed for building
+!PEAK-AIO/References/*.dll
+
 # Executables
 *.exe
 *.out

@@ -1,0 +1,47 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release
+        run: msbuild PEAK-AIO.sln /p:Configuration=Release /p:Platform="Any CPU" /restore
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PEAK-AIO
+          path: PEAK-AIO/bin/Release/PEAK-AIO.dll
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PEAK-AIO
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: PEAK-AIO.dll
+          generate_release_notes: true
