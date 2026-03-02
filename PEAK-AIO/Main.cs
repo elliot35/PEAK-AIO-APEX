@@ -20,10 +20,11 @@ public class PeakMod : BaseUnityPlugin
     // Menu
     private bool styleApplied = false;
     private bool showMenu = false;
-    private CursorLockMode savedCursorLockState = CursorLockMode.Locked;
     private int selectedTab = 1;
     private static readonly FieldInfo cursorVisibleField = typeof(DearImGuiInjection.DearImGuiInjection)
         .GetField("<IsCursorVisible>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic);
+    private static readonly MethodInfo updateCursorMethod = typeof(DearImGuiInjection.DearImGuiInjection)
+        .GetMethod("UpdateCursorVisibility", BindingFlags.Static | BindingFlags.NonPublic);
 
     private void ApplyCustomStyle()
     {
@@ -135,18 +136,7 @@ public class PeakMod : BaseUnityPlugin
         {
             showMenu = !showMenu;
             cursorVisibleField?.SetValue(null, showMenu);
-
-            if (showMenu)
-            {
-                savedCursorLockState = Cursor.lockState;
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
-            else
-            {
-                Cursor.lockState = savedCursorLockState;
-                Cursor.visible = false;
-            }
+            updateCursorMethod?.Invoke(null, null);
         }
     }
 
