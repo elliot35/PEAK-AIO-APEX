@@ -23,10 +23,6 @@ public class PeakMod : BaseUnityPlugin
     private int selectedTab = 1;
     private static readonly FieldInfo cursorVisibleField = typeof(DearImGuiInjection.DearImGuiInjection)
         .GetField("<IsCursorVisible>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic);
-    private static readonly MethodInfo getKeyDownMethod =
-        (Type.GetType("UnityEngine.Input, UnityEngine.InputLegacyModule")
-        ?? Type.GetType("UnityEngine.Input, UnityEngine"))
-        ?.GetMethod("GetKeyDown", new[] { typeof(KeyCode) });
 
     private void ApplyCustomStyle()
     {
@@ -134,7 +130,7 @@ public class PeakMod : BaseUnityPlugin
 
     private void Update()
     {
-        if (getKeyDownMethod != null && (bool)getKeyDownMethod.Invoke(null, new object[] { ConfigManager.MenuToggleKey.Value }))
+        if (UnityEngine.Input.GetKeyDown(ConfigManager.MenuToggleKey.Value))
         {
             showMenu = !showMenu;
             cursorVisibleField?.SetValue(null, showMenu);
