@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using ImGuiNET;
 using DearImGuiInjection;
 using DearImGuiInjection.BepInEx;
@@ -164,11 +164,11 @@ public class PeakMod : BaseUnityPlugin
             ImGui.SameLine();
             ImGui.SetCursorScreenPos(pos + new System.Numerics.Vector2(4, 2));
             ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(0.18f, 0.18f, 0.18f, 1.00f));
-            ImGui.TextUnformatted("Search items...");
+            ImGui.TextUnformatted(Localization.T("items.search"));
             ImGui.PopStyleColor();
         }
 
-        if (ImGui.BeginCombo(label, selectedIndex >= 0 && selectedIndex < items.Count ? items[selectedIndex] : "None"))
+        if (ImGui.BeginCombo(label, selectedIndex >= 0 && selectedIndex < items.Count ? items[selectedIndex] : Localization.T("items.none")))
         {
             for (int i = 0; i < items.Count; i++)
             {
@@ -237,11 +237,11 @@ public class PeakMod : BaseUnityPlugin
                 // Sidebar
                 ImGui.BeginChild("Sidebar", new System.Numerics.Vector2(85, 0), true);
                 ImGui.Dummy(new System.Numerics.Vector2(4, 2));
-                string[] sidebarItems = { "PLAYER", "ITEMS", "LOBBY", "WORLD", "ABOUT" };
-                for (int i = 0; i < sidebarItems.Length; i++)
+                string[] sidebarKeys = { "tab.player", "tab.items", "tab.lobby", "tab.world", "tab.about", "tab.language" };
+                for (int i = 0; i < sidebarKeys.Length; i++)
                 {
                     bool isSelected = (selectedTab == i + 1);
-                    string label = sidebarItems[i];
+                    string label = Localization.T(sidebarKeys[i]);
 
                     var textColor = isSelected
                         ? new System.Numerics.Vector4(0.318f, 0.569f, 0.384f, 1.0f)
@@ -254,7 +254,7 @@ public class PeakMod : BaseUnityPlugin
                     float offsetX = (availableWidth - textWidth) * 0.5f;
                     ImGui.SetCursorPosX(offsetX);
 
-                    if (ImGui.Selectable(label, isSelected))
+                    if (ImGui.Selectable(label + "##tab" + i, isSelected))
                         selectedTab = i + 1;
 
                     ImGui.PopStyleColor();
@@ -276,9 +276,9 @@ public class PeakMod : BaseUnityPlugin
                     ImGui.Indent(4.0f);
                     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
                     ImGui.Dummy(new System.Numerics.Vector2(4, 2));
-                    if (ImGui.CollapsingHeader("Self Mods##SelfMods", ImGuiTreeNodeFlags.DefaultOpen))
+                    if (ImGui.CollapsingHeader(Localization.T("player.selfmods") + "##SelfMods", ImGuiTreeNodeFlags.DefaultOpen))
                     {
-                        DrawCheckbox(ConfigManager.InfiniteStamina, "Infinite Stamina", (val) =>
+                        DrawCheckbox(ConfigManager.InfiniteStamina, Localization.T("player.infinite_stamina"), (val) =>
                         {
                             var character = GameHelpers.GetCharacterComponent();
                             var prop = ConstantFields.GetInfiniteStaminaProperty();
@@ -286,9 +286,9 @@ public class PeakMod : BaseUnityPlugin
                                 prop.SetValue(character, val);
                         });
                         ImGui.SameLine();
-                        DrawToolTip("Prevents stamina from decreasing, allowing unlimited sprinting and actions.");
+                        DrawToolTip(Localization.T("tip.infinite_stamina"));
 
-                        DrawCheckbox(ConfigManager.LockStatus, "Freeze Afflictions", (val) =>
+                        DrawCheckbox(ConfigManager.LockStatus, Localization.T("player.freeze_afflictions"), (val) =>
                         {
                             var character = GameHelpers.GetCharacterComponent();
                             var prop = ConstantFields.GetStatusLockProperty();
@@ -296,13 +296,13 @@ public class PeakMod : BaseUnityPlugin
                                 prop.SetValue(character, val);
                         });
                         ImGui.SameLine();
-                        DrawToolTip("Prevents your statuses from changing.");
+                        DrawToolTip(Localization.T("tip.freeze_afflictions"));
 
-                        DrawCheckbox(ConfigManager.NoWeight, "No Weight");
+                        DrawCheckbox(ConfigManager.NoWeight, Localization.T("player.no_weight"));
                         ImGui.SameLine();
-                        DrawToolTip("Disables weight penalties from carried items and backpack.");
+                        DrawToolTip(Localization.T("tip.no_weight"));
 
-                        DrawCheckbox(ConfigManager.SpeedMod, "Change Speed", (val) =>
+                        DrawCheckbox(ConfigManager.SpeedMod, Localization.T("player.change_speed"), (val) =>
                         {
                             var movement = GameHelpers.GetMovementComponent();
                             var field = ConstantFields.GetMovementModifierField();
@@ -310,9 +310,9 @@ public class PeakMod : BaseUnityPlugin
                                 field.SetValue(movement, ConfigManager.SpeedAmount.Value);
                         });
                         ImGui.SameLine();
-                        DrawToolTip("Overrides your character's movement speed with a custom multiplier.");
+                        DrawToolTip(Localization.T("tip.change_speed"));
 
-                        DrawCheckbox(ConfigManager.JumpMod, "Change Jump", (val) =>
+                        DrawCheckbox(ConfigManager.JumpMod, Localization.T("player.change_jump"), (val) =>
                         {
                             var movement = GameHelpers.GetMovementComponent();
                             var jumpField = ConstantFields.GetJumpGravityField();
@@ -323,9 +323,9 @@ public class PeakMod : BaseUnityPlugin
                                 fallField.SetValue(movement, ConfigManager.NoFallDmg.Value ? 999f : 1.5f);
                         });
                         ImGui.SameLine();
-                        DrawToolTip("Modifies jump height, allowing higher or lower jumps depending on your settings.");
+                        DrawToolTip(Localization.T("tip.change_jump"));
 
-                        DrawCheckbox(ConfigManager.ClimbMod, "Change Climb", (val) =>
+                        DrawCheckbox(ConfigManager.ClimbMod, Localization.T("player.change_climb"), (val) =>
                         {
                             var climb = GameHelpers.GetClimbingComponent();
                             var field = ConstantFields.GetClimbSpeedModField();
@@ -333,9 +333,9 @@ public class PeakMod : BaseUnityPlugin
                                 field.SetValue(climb, ConfigManager.ClimbAmount.Value);
                         });
                         ImGui.SameLine();
-                        DrawToolTip("Adjusts the speed at which you climb ladders and surfaces.");
+                        DrawToolTip(Localization.T("tip.change_climb"));
 
-                        DrawCheckbox(ConfigManager.VineClimbMod, "Change Vine Climb", (val) =>
+                        DrawCheckbox(ConfigManager.VineClimbMod, Localization.T("player.change_vine_climb"), (val) =>
                         {
                             var vine = GameHelpers.GetVineClimbComponent();
                             var field = ConstantFields.GetVineClimbSpeedModField();
@@ -343,9 +343,9 @@ public class PeakMod : BaseUnityPlugin
                                 field.SetValue(vine, ConfigManager.VineClimbAmount.Value);
                         });
                         ImGui.SameLine();
-                        DrawToolTip("Changes climbing speed specifically for vines.");
+                        DrawToolTip(Localization.T("tip.change_vine_climb"));
 
-                        DrawCheckbox(ConfigManager.RopeClimbMod, "Change Rope Climb", (val) =>
+                        DrawCheckbox(ConfigManager.RopeClimbMod, Localization.T("player.change_rope_climb"), (val) =>
                         {
                             var rope = GameHelpers.GetRopeClimbComponent();
                             var field = ConstantFields.GetRopeClimbSpeedModField();
@@ -353,24 +353,24 @@ public class PeakMod : BaseUnityPlugin
                                 field.SetValue(rope, ConfigManager.RopeClimbAmount.Value);
                         });
                         ImGui.SameLine();
-                        DrawToolTip("Modifies climbing speed when using ropes or rope-based obstacles.");
+                        DrawToolTip(Localization.T("tip.change_rope_climb"));
 
-                        DrawCheckbox(ConfigManager.TeleportToPing, "Teleport to Ping");
+                        DrawCheckbox(ConfigManager.TeleportToPing, Localization.T("player.teleport_to_ping"));
                         ImGui.SameLine();
-                        DrawToolTip("Teleports your character to the pinged location on the map.");
+                        DrawToolTip(Localization.T("tip.teleport_to_ping"));
 
-                        DrawCheckbox(ConfigManager.FlyMod, "Fly Mode", FlyPatch.SetFlying);
+                        DrawCheckbox(ConfigManager.FlyMod, Localization.T("player.fly_mode"), FlyPatch.SetFlying);
                         ImGui.SameLine();
-                        DrawToolTip("Allows free movement in all directions while ignoring gravity.");
+                        DrawToolTip(Localization.T("tip.fly_mode"));
                     }
                     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
-                    if (ImGui.CollapsingHeader("Teleport##PlayerTeleport", ImGuiTreeNodeFlags.DefaultOpen))
+                    if (ImGui.CollapsingHeader(Localization.T("player.teleport") + "##PlayerTeleport", ImGuiTreeNodeFlags.DefaultOpen))
                     {
                         ImGui.InputFloat("X", ref Globals.teleportX);
                         ImGui.InputFloat("Y", ref Globals.teleportY);
                         ImGui.InputFloat("Z", ref Globals.teleportZ);
 
-                        if (ImGui.Button("Teleport to coords"))
+                        if (ImGui.Button(Localization.T("player.teleport_to_coords")))
                         {
                             Logger.LogInfo($"[Teleport] Requested to X:{Globals.teleportX} Y:{Globals.teleportY} Z:{Globals.teleportZ}");
                             Utilities.TeleportToCoords(Globals.teleportX, Globals.teleportY, Globals.teleportZ);
@@ -382,44 +382,44 @@ public class PeakMod : BaseUnityPlugin
                     ImGui.BeginChild("PlayerDetailsColumn", new System.Numerics.Vector2(halfWidth - 10, 0), true);
                     ImGui.Indent(4.0f);
                     ImGui.Dummy(new System.Numerics.Vector2(4, 2));
-                    if (ImGui.CollapsingHeader("Details", ImGuiTreeNodeFlags.DefaultOpen))
+                    if (ImGui.CollapsingHeader(Localization.T("player.details"), ImGuiTreeNodeFlags.DefaultOpen))
                     {
                         if (ConfigManager.JumpMod.Value)
                         {
                             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
-                            DrawCheckbox(ConfigManager.NoFallDmg, "No Fall Dmg");
-                            DrawSliderFloat(ConfigManager.JumpAmount, "##jump_amt", 10.0f, 500.0f, "Jump Mult: %.2f");
+                            DrawCheckbox(ConfigManager.NoFallDmg, Localization.T("player.no_fall_dmg"));
+                            DrawSliderFloat(ConfigManager.JumpAmount, "##jump_amt", 10.0f, 500.0f, Localization.T("player.jump_mult"));
                         }
 
                         if (ConfigManager.SpeedMod.Value)
                         {
                             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
-                            DrawSliderFloat(ConfigManager.SpeedAmount, "##speed_amt", 1.0f, 20.0f, "Move Speed: %.2f");
+                            DrawSliderFloat(ConfigManager.SpeedAmount, "##speed_amt", 1.0f, 20.0f, Localization.T("player.move_speed"));
                         }
 
                         if (ConfigManager.ClimbMod.Value)
                         {
                             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
-                            DrawSliderFloat(ConfigManager.ClimbAmount, "##climb_amt", 1.0f, 20.0f, "Climb Speed: %.2f");
+                            DrawSliderFloat(ConfigManager.ClimbAmount, "##climb_amt", 1.0f, 20.0f, Localization.T("player.climb_speed"));
                         }
 
                         if (ConfigManager.VineClimbMod.Value)
                         {
                             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
-                            DrawSliderFloat(ConfigManager.VineClimbAmount, "##vine_climb_amt", 1.0f, 20.0f, "Vine Speed: %.2f");
+                            DrawSliderFloat(ConfigManager.VineClimbAmount, "##vine_climb_amt", 1.0f, 20.0f, Localization.T("player.vine_speed"));
                         }
 
                         if (ConfigManager.RopeClimbMod.Value)
                         {
                             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
-                            DrawSliderFloat(ConfigManager.RopeClimbAmount, "##rope_climb_amt", 1.0f, 20.0f, "Rope Speed: %.2f");
+                            DrawSliderFloat(ConfigManager.RopeClimbAmount, "##rope_climb_amt", 1.0f, 20.0f, Localization.T("player.rope_speed"));
                         }
                         if (ConfigManager.FlyMod.Value)
                         {
                             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
-                            DrawSliderFloat(ConfigManager.FlySpeed, "##fly_speed", 10f, 100f, "Fly Speed: %.2f");
+                            DrawSliderFloat(ConfigManager.FlySpeed, "##fly_speed", 10f, 100f, Localization.T("player.fly_speed"));
                             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
-                            DrawSliderFloat(ConfigManager.FlyAcceleration, "##fly_acceleration", 10f, 300f, "Fly Acceleration: %.2f");
+                            DrawSliderFloat(ConfigManager.FlyAcceleration, "##fly_acceleration", 10f, 300f, Localization.T("player.fly_acceleration"));
                         }
                     }
                     ImGui.Unindent();
@@ -441,9 +441,9 @@ public class PeakMod : BaseUnityPlugin
                     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
                     if (ImGui.BeginTable("InventorySlots", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
                     {
-                        ImGui.TableSetupColumn("Slot 1");
-                        ImGui.TableSetupColumn("Slot 2");
-                        ImGui.TableSetupColumn("Slot 3");
+                        ImGui.TableSetupColumn(Localization.T("items.slot") + " 1");
+                        ImGui.TableSetupColumn(Localization.T("items.slot") + " 2");
+                        ImGui.TableSetupColumn(Localization.T("items.slot") + " 3");
                         ImGui.TableHeadersRow();
 
                         ImGui.TableNextRow();
@@ -453,7 +453,7 @@ public class PeakMod : BaseUnityPlugin
                             ImGui.TableSetColumnIndex(slot);
                             ImGui.PushID(slot); // Single PushID per slot
 
-                            string currentItemName = "None";
+                            string currentItemName = Localization.T("items.none");
 
                             if (Player.localPlayer?.itemSlots != null &&
                                 Player.localPlayer.itemSlots.Length > slot &&
@@ -462,7 +462,7 @@ public class PeakMod : BaseUnityPlugin
                                 currentItemName = Player.localPlayer.itemSlots[slot].prefab.GetName();
                             }
 
-                            ImGui.Text($"Item {slot + 1}:");
+                            ImGui.Text(Localization.T("items.item_n", slot + 1));
                             ImGui.SameLine();
                             ImGui.Text(currentItemName);
                             ImGui.Spacing();
@@ -478,7 +478,7 @@ public class PeakMod : BaseUnityPlugin
                             }
 
                             ImGui.SameLine();
-                            DrawToolTip("Search and assign any available item to this slot.");
+                            DrawToolTip(Localization.T("tip.item_search"));
 
                             ImGui.Spacing();
 
@@ -500,14 +500,14 @@ public class PeakMod : BaseUnityPlugin
                             }
 
                             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
-                            DrawSliderFloat(rechargeAmountConfig, $"##recharge_mount##{slot}", 0f, 100f, "Charge: %.1f");
+                            DrawSliderFloat(rechargeAmountConfig, $"##recharge_mount##{slot}", 0f, 100f, Localization.T("items.charge_format"));
 
-                            if (ImGui.Button($"Recharge##{slot}"))
+                            if (ImGui.Button(Localization.T("items.recharge") + $"##{slot}"))
                             {
                                 Utilities.RechargeInventorySlot(slot, rechargeAmountConfig.Value);
                             }
                             ImGui.SameLine();
-                            DrawToolTip("Set how much to recharge the item’s charges when clicking 'Recharge'.");
+                            DrawToolTip(Localization.T("tip.recharge"));
 
                             ImGui.PopID(); // Pop slot ID
                         }
@@ -521,10 +521,10 @@ public class PeakMod : BaseUnityPlugin
                     }
 
                     ImGui.Dummy(new System.Numerics.Vector2(4, 2));
-                    if (ImGui.Button("Refresh Item List"))
+                    if (ImGui.Button(Localization.T("items.refresh")))
                         Utilities.UpdateItems();
                     ImGui.SameLine();
-                    DrawToolTip("Reloads the list of available items in case something was missed or updated.");
+                    DrawToolTip(Localization.T("tip.refresh_items"));
 
                     ImGui.Unindent();
                 }
@@ -543,14 +543,14 @@ public class PeakMod : BaseUnityPlugin
                     ImGui.BeginChild("Lobby_PlayerList", new System.Numerics.Vector2(halfWidth, 0), true);
                     ImGui.Indent(4.0f);
                     ImGui.Dummy(new System.Numerics.Vector2(4, 2));
-                    if (ImGui.CollapsingHeader("Lobby Players", ImGuiTreeNodeFlags.DefaultOpen))
+                    if (ImGui.CollapsingHeader(Localization.T("lobby.players"), ImGuiTreeNodeFlags.DefaultOpen))
                     {
                         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
                         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
 
-                        if (ImGui.BeginCombo("Select Player", Globals.selectedPlayer >= 0 && Globals.selectedPlayer < Globals.playerNames.Count
+                        if (ImGui.BeginCombo(Localization.T("lobby.select_player"), Globals.selectedPlayer >= 0 && Globals.selectedPlayer < Globals.playerNames.Count
                             ? Globals.playerNames[Globals.selectedPlayer]
-                            : "None"))
+                            : Localization.T("items.none")))
                         {
                             for (int i = 0; i < Globals.playerNames.Count; i++)
                             {
@@ -567,30 +567,30 @@ public class PeakMod : BaseUnityPlugin
                         }
                         ImGui.Dummy(new System.Numerics.Vector2(4, 4));
                         ImGui.Separator();
-                        ImGui.Text("All Players");
+                        ImGui.Text(Localization.T("lobby.all_players"));
 
-                        if (ImGui.Button("Revive All"))
+                        if (ImGui.Button(Localization.T("lobby.revive_all")))
                             Utilities.ReviveAllPlayers();
 
                         ImGui.SameLine();
-                        if (ImGui.Button("Kill All"))
+                        if (ImGui.Button(Localization.T("lobby.kill_all")))
                         {
                             Utilities.KillAllPlayers();
                         }
 
                         bool excludeSelf = Globals.excludeSelfFromAllActions;
-                        if (ImGui.Checkbox("Exclude Self from Kill All##KillAll", ref excludeSelf))
+                        if (ImGui.Checkbox(Localization.T("lobby.exclude_self") + "##KillAll", ref excludeSelf))
                             Globals.excludeSelfFromAllActions = excludeSelf;
 
-                        if (ImGui.Button("Warp All To Me"))
+                        if (ImGui.Button(Localization.T("lobby.warp_all_to_me")))
                             Utilities.WarpAllPlayersToMe();
                     }
 
                     ImGui.Dummy(new System.Numerics.Vector2(4, 2));
-                    if (ImGui.Button("Refresh Players List"))
+                    if (ImGui.Button(Localization.T("lobby.refresh_players")))
                         Utilities.RefreshPlayerList();
                     ImGui.SameLine();
-                    DrawToolTip("Manually reloads the list of players in case it didn’t update automatically.");
+                    DrawToolTip(Localization.T("tip.refresh_players"));
 
                     ImGui.Unindent();
                     ImGui.EndChild();
@@ -600,38 +600,38 @@ public class PeakMod : BaseUnityPlugin
                     ImGui.BeginChild("Lobby_PlayerActions", new System.Numerics.Vector2(halfWidth - 10, 0), true);
                     ImGui.Indent(4.0f);
                     ImGui.Dummy(new System.Numerics.Vector2(0, 4));
-                    if (ImGui.CollapsingHeader("Actions", ImGuiTreeNodeFlags.DefaultOpen))
+                    if (ImGui.CollapsingHeader(Localization.T("lobby.actions"), ImGuiTreeNodeFlags.DefaultOpen))
                     {
                         if (Globals.selectedPlayer >= 0 && Globals.selectedPlayer < Globals.allPlayers.Count)
                         {
-                            if (ImGui.Button("Revive"))
+                            if (ImGui.Button(Localization.T("lobby.revive")))
                                 Utilities.ReviveSelectedPlayer();
 
                             ImGui.SameLine();
-                            if (ImGui.Button("Kill"))
+                            if (ImGui.Button(Localization.T("lobby.kill")))
                                 Utilities.KillSelectedPlayer();
 
-                            if (ImGui.Button("Warp To"))
+                            if (ImGui.Button(Localization.T("lobby.warp_to")))
                                 Utilities.WarpToSelectedPlayer();
 
                             ImGui.SameLine();
-                            if (ImGui.Button("Warp To Me"))
+                            if (ImGui.Button(Localization.T("lobby.warp_to_me")))
                                 Utilities.WarpSelectedPlayerToMe();
 
                             ImGui.Dummy(new System.Numerics.Vector2(4, 2));
                             ImGui.Separator();
-                            ImGui.Text("Special Actions");
+                            ImGui.Text(Localization.T("lobby.special_actions"));
 
-                            if (ImGui.Button("Spawn Scoutmaster"))
+                            if (ImGui.Button(Localization.T("lobby.spawn_scoutmaster")))
                             {
                                 Utilities.SpawnScoutmasterForPlayer(Globals.selectedPlayer);
                             }
                             ImGui.SameLine();
-                            DrawToolTip("Spawns a Scoutmaster near the selected player. Only works for host. Forces aggro.");
+                            DrawToolTip(Localization.T("tip.spawn_scoutmaster"));
                         }
                         else
                         {
-                            ImGui.Text("No player selected.");
+                            ImGui.Text(Localization.T("lobby.no_player_selected"));
                         }
                     }
 
@@ -651,16 +651,16 @@ public class PeakMod : BaseUnityPlugin
                     ImGui.Indent(4.0f);
                     ImGui.Dummy(new System.Numerics.Vector2(4, 2));
 
-                    if (ImGui.CollapsingHeader("Containers", ImGuiTreeNodeFlags.DefaultOpen))
+                    if (ImGui.CollapsingHeader(Localization.T("world.containers"), ImGuiTreeNodeFlags.DefaultOpen))
                     {
                         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 4);
 
                         // Always show the combo, even if the list is empty
                         string selectedLabel = Globals.selectedLuggageIndex >= 0 && Globals.selectedLuggageIndex < Globals.luggageLabels.Count
                             ? Globals.luggageLabels[Globals.selectedLuggageIndex]
-                            : "None";
+                            : Localization.T("items.none");
 
-                        if (ImGui.BeginCombo("Select Container", selectedLabel))
+                        if (ImGui.BeginCombo(Localization.T("world.select_container"), selectedLabel))
                         {
                             if (Globals.luggageLabels.Count > 0)
                             {
@@ -678,26 +678,26 @@ public class PeakMod : BaseUnityPlugin
                             }
                             else
                             {
-                                ImGui.TextDisabled("No containers found.");
+                                ImGui.TextDisabled(Localization.T("world.no_containers"));
                             }
 
                             ImGui.EndCombo();
                         }
 
                         ImGui.Dummy(new System.Numerics.Vector2(4, 2));
-                        if (ImGui.Button("Refresh Luggage List"))
+                        if (ImGui.Button(Localization.T("world.refresh_luggage")))
                         {
                             Utilities.hasInitializedLuggageList = false;
                             Utilities.RefreshLuggageList();
                         }
                         ImGui.SameLine();
-                        DrawToolTip("Reloads the list of luggage within 300m of your position.");
+                        DrawToolTip(Localization.T("tip.refresh_luggage"));
 
                         ImGui.Dummy(new System.Numerics.Vector2(4, 4));
                         ImGui.Separator();
-                        ImGui.Text("All Nearby Containers");
+                        ImGui.Text(Localization.T("world.all_nearby"));
 
-                        if (ImGui.Button("Open All Nearby"))
+                        if (ImGui.Button(Localization.T("world.open_all_nearby")))
                         {
                             Utilities.OpenAllNearbyLuggage();
                         }
@@ -712,13 +712,13 @@ public class PeakMod : BaseUnityPlugin
                     ImGui.Indent(4.0f);
                     ImGui.Dummy(new System.Numerics.Vector2(0, 4));
 
-                    if (ImGui.CollapsingHeader("Actions", ImGuiTreeNodeFlags.DefaultOpen))
+                    if (ImGui.CollapsingHeader(Localization.T("lobby.actions") + "##WorldActions", ImGuiTreeNodeFlags.DefaultOpen))
                     {
                         if (Globals.selectedLuggageIndex >= 0 && Globals.selectedLuggageIndex < Globals.luggageLabels.Count)
                         {
                             string label = Globals.luggageLabels[Globals.selectedLuggageIndex];
 
-                            if (ImGui.Button("Warp To Luggage"))
+                            if (ImGui.Button(Localization.T("world.warp_to_luggage")))
                             {
                                 Logger.LogInfo($"[UI] Warp requested for index {Globals.selectedLuggageIndex} - {label}");
                                 Vector3 luggageCoords = Globals.luggageObject[Globals.selectedLuggageIndex].Center();
@@ -727,14 +727,14 @@ public class PeakMod : BaseUnityPlugin
                                 Utilities.TeleportToCoords(luggageCoords.x, luggageCoords.y, luggageCoords.z);
                             }
 
-                            if (ImGui.Button("Open Luggage"))
+                            if (ImGui.Button(Localization.T("world.open_luggage")))
                             {
                                 Utilities.OpenLuggage(Globals.selectedLuggageIndex);
                             }
                         }
                         else
                         {
-                            ImGui.Text("No luggage selected.");
+                            ImGui.Text(Localization.T("world.no_luggage_selected"));
                         }
                     }
 
@@ -747,33 +747,70 @@ public class PeakMod : BaseUnityPlugin
                     ImGui.Indent(4.0f);
                     ImGui.Dummy(new System.Numerics.Vector2(4, 2));
 
-                    ImGui.Text("PEAK AIO Mod");
+                    ImGui.Text(Localization.T("about.title"));
                     ImGui.Separator();
-                    ImGui.Text("Version: 1.0.2");
-                    ImGui.Text("Author: OniGremlin");
+                    ImGui.Text(Localization.T("about.version"));
+                    ImGui.Text(Localization.T("about.author"));
 
                     ImGui.Spacing();
-                    ImGui.TextWrapped("PEAK AIO is a quality-of-life and utility mod designed for the game PEAK. It brings together a wide range of player enhancements, inventory tools, world manipulation, and lobby control features in one sleek ImGui-powered interface.");
+                    ImGui.TextWrapped(Localization.T("about.description"));
 
                     ImGui.Spacing();
-                    ImGui.Text("Key Features:");
-                    ImGui.BulletText("Infinite stamina and affliction immunity");
-                    ImGui.BulletText("Adjustable movement: speed, jump, and climb mods");
-                    ImGui.BulletText("Real-time inventory editing and recharge");
-                    ImGui.BulletText("Player-to-player warp, revive, and kill tools");
-                    ImGui.BulletText("Custom teleportation and ping-based movement");
-                    ImGui.BulletText("Stylized UI with tabbed interface");
+                    ImGui.Text(Localization.T("about.key_features"));
+                    ImGui.BulletText(Localization.T("about.feature1"));
+                    ImGui.BulletText(Localization.T("about.feature2"));
+                    ImGui.BulletText(Localization.T("about.feature3"));
+                    ImGui.BulletText(Localization.T("about.feature4"));
+                    ImGui.BulletText(Localization.T("about.feature5"));
+                    ImGui.BulletText(Localization.T("about.feature6"));
 
                     ImGui.Spacing();
-                    ImGui.Text("Special Thanks:");
-                    ImGui.BulletText("Penswer for insight, and guidance");
-                    ImGui.BulletText("BepInEx team for the modding framework");
-                    ImGui.BulletText("DearImGuiInjection for seamless UI integration");
-                    ImGui.BulletText("HarmonyX for runtime patching support");
+                    ImGui.Text(Localization.T("about.thanks"));
+                    ImGui.BulletText(Localization.T("about.thanks1"));
+                    ImGui.BulletText(Localization.T("about.thanks2"));
+                    ImGui.BulletText(Localization.T("about.thanks3"));
+                    ImGui.BulletText(Localization.T("about.thanks4"));
 
                     ImGui.Spacing();
                     ImGui.Separator();
-                    ImGui.TextWrapped("This mod is provided as-is for educational and personal use. Not affiliated with or endorsed by the developers of PEAK. Use responsibly.");
+                    ImGui.TextWrapped(Localization.T("about.disclaimer"));
+
+                    ImGui.Unindent();
+                }
+                // Language
+                else if (selectedTab == 6)
+                {
+                    ImGui.Indent(4.0f);
+                    ImGui.Dummy(new System.Numerics.Vector2(4, 2));
+
+                    ImGui.Text(Localization.T("lang.title"));
+                    ImGui.Separator();
+                    ImGui.Spacing();
+
+                    ImGui.Text(Localization.T("lang.current"));
+                    ImGui.Spacing();
+                    ImGui.Text(Localization.T("lang.select"));
+                    ImGui.Spacing();
+
+                    for (int i = 0; i < Localization.LanguageNames.Length; i++)
+                    {
+                        bool isActive = ((int)Localization.CurrentLanguage == i);
+
+                        if (isActive)
+                        {
+                            ImGui.PushStyleColor(ImGuiCol.Button, new System.Numerics.Vector4(0.318f, 0.569f, 0.384f, 1.0f));
+                            ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(0.953f, 0.941f, 0.902f, 1.00f));
+                        }
+
+                        if (ImGui.Button(Localization.LanguageNames[i] + "##lang" + i, new System.Numerics.Vector2(ImGui.GetContentRegionAvail().X - 4, 28)))
+                        {
+                            Localization.SetLanguage(i);
+                            ConfigManager.LanguageIndex.Value = i;
+                        }
+
+                        if (isActive)
+                            ImGui.PopStyleColor(2);
+                    }
 
                     ImGui.Unindent();
                 }

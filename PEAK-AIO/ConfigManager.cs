@@ -1,4 +1,4 @@
-﻿using BepInEx.Logging;
+using BepInEx.Logging;
 using BepInEx.Configuration;
 using UnityEngine;
 
@@ -39,6 +39,9 @@ public static class ConfigManager
     // Teleport
     public static ConfigEntry<bool> TeleportToPing;
 
+    // Language
+    public static ConfigEntry<int> LanguageIndex;
+
     public static void Init(ConfigFile config, ManualLogSource logger)
     {
         Logger = logger;
@@ -73,6 +76,10 @@ public static class ConfigManager
         RechargeAmountSlot1 = config.Bind("Inventory", "RechargeAmountSlot1", 100f, new ConfigDescription("Recharge amount for slot 1", new AcceptableValueRange<float>(0f, 999f)));
         RechargeAmountSlot2 = config.Bind("Inventory", "RechargeAmountSlot2", 100f, new ConfigDescription("Recharge amount for slot 2", new AcceptableValueRange<float>(0f, 999f)));
         RechargeAmountSlot3 = config.Bind("Inventory", "RechargeAmountSlot3", 100f, new ConfigDescription("Recharge amount for slot 3", new AcceptableValueRange<float>(0f, 999f)));
+
+        // Language
+        LanguageIndex = config.Bind("UI", "Language", 0, new ConfigDescription("Language: 0=English, 1=简体中文, 2=日本語, 3=한국어", new AcceptableValueRange<int>(0, 3)));
+        Localization.SetLanguage(LanguageIndex.Value);
 
         Logger.LogInfo("[PEAK AIO][ConfigManager] Config Loaded.");
     }
