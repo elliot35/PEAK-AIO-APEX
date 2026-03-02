@@ -494,10 +494,10 @@ public static class Localization
             { Language.Korean, "PEAK AIO 모드" }
         }},
         { "about.version", new Dictionary<Language, string> {
-            { Language.English, "Version: 1.0.6" },
-            { Language.SimplifiedChinese, "版本: 1.0.6" },
-            { Language.Japanese, "バージョン: 1.0.6" },
-            { Language.Korean, "버전: 1.0.6" }
+            { Language.English, "Version: 1.0.7" },
+            { Language.SimplifiedChinese, "版本: 1.0.7" },
+            { Language.Japanese, "バージョン: 1.0.7" },
+            { Language.Korean, "버전: 1.0.7" }
         }},
         { "about.author", new Dictionary<Language, string> {
             { Language.English, "Author: OniGremlin" },

@@ -39,12 +39,19 @@ public static class ConfigManager
     // Teleport
     public static ConfigEntry<bool> TeleportToPing;
 
+    // General
+    public static ConfigEntry<KeyCode> MenuToggleKey;
+
     // Language
     public static ConfigEntry<int> LanguageIndex;
 
     public static void Init(ConfigFile config, ManualLogSource logger)
     {
         Logger = logger;
+
+        // General
+        MenuToggleKey = config.Bind("General", "MenuToggleKey", KeyCode.Insert,
+            "Key to toggle the mod menu overlay. Uses UnityEngine.KeyCode names (e.g. Insert, F1, F2, Home, RightShift).");
 
         // Cheats
         InfiniteStamina = config.Bind("Cheats", "InfiniteStamina", false, "Enable infinite stamina");

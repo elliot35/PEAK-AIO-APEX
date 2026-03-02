@@ -19,6 +19,7 @@ public class PeakMod : BaseUnityPlugin
 {
     // Menu
     private bool styleApplied = false;
+    private bool showMenu = false;
     private int selectedTab = 1;
 
     private void ApplyCustomStyle()
@@ -125,6 +126,15 @@ public class PeakMod : BaseUnityPlugin
         DearImGuiInjection.DearImGuiInjection.Render -= MyUI;
     }
 
+    private void Update()
+    {
+        if (Input.GetKeyDown(ConfigManager.MenuToggleKey.Value))
+        {
+            showMenu = !showMenu;
+            DearImGuiInjection.DearImGuiInjection.IsCursorVisible = showMenu;
+        }
+    }
+
     void DrawCheckbox(ConfigEntry<bool> config, string label, Action<bool> mainThreadAction = null)
     {
         bool value = config.Value;
@@ -218,8 +228,7 @@ public class PeakMod : BaseUnityPlugin
     {
         try
         {
-            // Only draw the menu when the ImGui cursor is visible (toggled with Insert)
-            if (!DearImGuiInjection.DearImGuiInjection.IsCursorVisible)
+            if (!showMenu)
                 return;
 
             if (!styleApplied)
