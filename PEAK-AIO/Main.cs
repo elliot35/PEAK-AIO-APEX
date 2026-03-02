@@ -108,64 +108,42 @@ public class PeakMod : BaseUnityPlugin
 
     private unsafe void LoadCJKFonts()
     {
-        try
+        var io = ImGui.GetIO();
+        var fonts = io.Fonts;
+
+        fonts.Clear();
+        fonts.AddFontDefault();
+
+        float fontSize = 13.0f;
+
+        ImFontConfigPtr mergeConfig = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig());
+        mergeConfig.MergeMode = true;
+        mergeConfig.PixelSnapH = true;
+
+        string msyhPath = @"C:\Windows\Fonts\msyh.ttc";
+        if (System.IO.File.Exists(msyhPath))
         {
-            var io = ImGui.GetIO();
-            var fonts = io.Fonts;
-
-            fonts.Clear();
-            fonts.AddFontDefault();
-
-            float fontSize = 13.0f;
-
-            ImFontConfigPtr mergeConfig = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig());
-            mergeConfig.MergeMode = true;
-            mergeConfig.PixelSnapH = true;
-
-            string msyhPath = @"C:\Windows\Fonts\msyh.ttc";
-            if (System.IO.File.Exists(msyhPath))
-            {
-                fonts.AddFontFromFileTTF(msyhPath, fontSize, mergeConfig, fonts.GetGlyphRangesChineseFull());
-                fonts.AddFontFromFileTTF(msyhPath, fontSize, mergeConfig, fonts.GetGlyphRangesJapanese());
-            }
-
-            string malgunPath = @"C:\Windows\Fonts\malgun.ttf";
-            if (System.IO.File.Exists(malgunPath))
-            {
-                fonts.AddFontFromFileTTF(malgunPath, fontSize, mergeConfig, fonts.GetGlyphRangesKorean());
-            }
-
-            fonts.Build();
-            mergeConfig.Destroy();
-
-            var assembly = typeof(DearImGuiInjection.DearImGuiInjection).Assembly;
-            var implType = assembly.GetType("DearImGuiInjection.Backends.ImGuiDX11Impl")
-                        ?? assembly.GetType("DearImGuiInjection.Backends.ImGuiDX12Impl");
-
-            if (implType != null)
-            {
-                var samplerField = implType.GetField("_fontSampler", BindingFlags.NonPublic | BindingFlags.Static);
-                if (samplerField != null)
-                {
-                    var oldSampler = samplerField.GetValue(null) as IDisposable;
-                    oldSampler?.Dispose();
-                    samplerField.SetValue(null, null);
-                }
-
-                var rvField = implType.GetField("_fontResourceView", BindingFlags.NonPublic | BindingFlags.Static);
-                if (rvField != null)
-                {
-                    var oldRv = rvField.GetValue(null) as IDisposable;
-                    oldRv?.Dispose();
-                    rvField.SetValue(null, null);
-                }
-            }
-
-            Logger.LogInfo("[PEAK AIO] CJK fonts loaded successfully.");
+            fonts.AddFontFromFileTTF(msyhPath, fontSize, mergeConfig, fonts.GetGlyphRangesChineseFull());
+            fonts.AddFontFromFileTTF(msyhPath, fontSize, mergeConfig, fonts.GetGlyphRangesJapanese());
         }
-        catch (Exception ex)
+
+        string malgunPath = @"C:\Windows\Fonts\malgun.ttf";
+        if (System.IO.File.Exists(malgunPath))
         {
-            Logger.LogWarning("[PEAK AIO] Failed to load CJK fonts: " + ex);
+            fonts.AddFontFromFileTTF(malgunPath, fontSize, mergeConfig, fonts.GetGlyphRangesKorean());
+        }
+
+        fonts.Build();
+        mergeConfig.Destroy();
+
+        var assembly = typeof(DearImGuiInjection.DearImGuiInjection).Assembly;
+        var implType = assembly.GetType("DearImGuiInjection.Backends.ImGuiDX11Impl")
+                    ?? assembly.GetType("DearImGuiInjection.Backends.ImGuiDX12Impl");
+
+        if (implType != null)
+        {
+            var createFontsTexture = implType.GetMethod("CreateFontsTexture", BindingFlags.Public | BindingFlags.Static);
+            createFontsTexture?.Invoke(null, null);
         }
     }
 
@@ -300,8 +278,16 @@ public class PeakMod : BaseUnityPlugin
         {
             if (!fontsLoaded)
             {
-                LoadCJKFonts();
                 fontsLoaded = true;
+                try
+                {
+                    LoadCJKFonts();
+                    Logger.LogInfo("[PEAK AIO] CJK font atlas rebuilt.");
+                }
+                catch (Exception fontEx)
+                {
+                    Logger.LogWarning("[PEAK AIO] CJK font loading failed, using default font: " + fontEx.Message);
+                }
                 return;
             }
 
