@@ -1,4 +1,5 @@
 using HarmonyLib;
+using ImGuiNET;
 using Photon.Pun;
 using System;
 using UnityEngine;
@@ -102,6 +103,53 @@ public class FlyPatch
             var rig = partList[i]?.Rig;
             if (rig != null)
                 rig.linearVelocity = flyVelocity;
+        }
+    }
+}
+
+public static class CJKFontPatch
+{
+    private static bool fontsLoaded = false;
+
+    public static unsafe void Prefix()
+    {
+        if (fontsLoaded) return;
+        fontsLoaded = true;
+
+        try
+        {
+            var io = ImGui.GetIO();
+            var fonts = io.Fonts;
+
+            fonts.Clear();
+            fonts.AddFontDefault();
+
+            float fontSize = 13.0f;
+            ImFontConfigPtr mergeConfig = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig());
+            mergeConfig.MergeMode = true;
+            mergeConfig.PixelSnapH = true;
+
+            string msyhPath = @"C:\Windows\Fonts\msyh.ttc";
+            if (System.IO.File.Exists(msyhPath))
+            {
+                fonts.AddFontFromFileTTF(msyhPath, fontSize, mergeConfig, fonts.GetGlyphRangesChineseFull());
+                fonts.AddFontFromFileTTF(msyhPath, fontSize, mergeConfig, fonts.GetGlyphRangesJapanese());
+            }
+
+            string malgunPath = @"C:\Windows\Fonts\malgun.ttf";
+            if (System.IO.File.Exists(malgunPath))
+            {
+                fonts.AddFontFromFileTTF(malgunPath, fontSize, mergeConfig, fonts.GetGlyphRangesKorean());
+            }
+
+            fonts.Build();
+            mergeConfig.Destroy();
+
+            ConfigManager.Logger.LogInfo("[PEAK AIO] CJK font atlas rebuilt.");
+        }
+        catch (Exception ex)
+        {
+            ConfigManager.Logger.LogWarning("[PEAK AIO] CJK font loading failed: " + ex.Message);
         }
     }
 }
