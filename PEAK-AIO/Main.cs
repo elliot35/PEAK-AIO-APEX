@@ -21,10 +21,6 @@ public class PeakMod : BaseUnityPlugin
     private bool styleApplied = false;
     private bool showMenu = false;
     private int selectedTab = 1;
-    private static readonly FieldInfo cursorVisibleField = typeof(DearImGuiInjection.DearImGuiInjection)
-        .GetField("<IsCursorVisible>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic);
-    private static readonly MethodInfo updateCursorMethod = typeof(DearImGuiInjection.DearImGuiInjection)
-        .GetMethod("UpdateCursorVisibility", BindingFlags.Static | BindingFlags.NonPublic);
 
     private void ApplyCustomStyle()
     {
@@ -165,8 +161,6 @@ public class PeakMod : BaseUnityPlugin
         if (UnityEngine.Input.GetKeyDown(ConfigManager.MenuToggleKey.Value))
         {
             showMenu = !showMenu;
-            cursorVisibleField?.SetValue(null, showMenu);
-            updateCursorMethod?.Invoke(null, null);
         }
     }
 
@@ -271,6 +265,9 @@ public class PeakMod : BaseUnityPlugin
                 ApplyCustomStyle();
                 styleApplied = true;
             }
+
+            if (!DearImGuiInjection.DearImGuiInjection.IsCursorVisible)
+                return;
 
             // Set window position and size
             ImGui.SetNextWindowPos(new System.Numerics.Vector2(20, 20), ImGuiCond.Once);
