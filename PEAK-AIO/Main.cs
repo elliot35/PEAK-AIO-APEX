@@ -13,7 +13,7 @@ using Photon.Pun;
 using System.Collections.Generic;
 
 [BepInDependency(DearImGuiInjection.Metadata.GUID)]
-[BepInPlugin("com.onigremlin.peakaio", "PEAK AIO Mod", "1.0.10")]
+[BepInPlugin("com.onigremlin.peakaio", "PEAK AIO Mod", "1.0.15")]
 
 public class PeakMod : BaseUnityPlugin
 {
@@ -119,7 +119,7 @@ public class PeakMod : BaseUnityPlugin
         harmony.PatchAll();
 
         var diAssembly = typeof(DearImGuiInjection.DearImGuiInjection).Assembly;
-        var prefixMethod = new HarmonyMethod(typeof(CJKFontPatch).GetMethod("Prefix",
+        var cjkPrefixMethod = new HarmonyMethod(typeof(CJKFontPatch).GetMethod("Prefix",
             BindingFlags.Public | BindingFlags.Static));
 
         string[] backendTypeNames = {
@@ -138,13 +138,26 @@ public class PeakMod : BaseUnityPlugin
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
                 if (newFrameMethod == null) continue;
 
-                harmony.Patch(newFrameMethod, prefix: prefixMethod);
+                harmony.Patch(newFrameMethod, prefix: cjkPrefixMethod);
                 Logger.LogInfo($"[PEAK AIO] Patched {typeName}.NewFrame for CJK fonts.");
             }
             catch (Exception ex)
             {
                 Logger.LogWarning($"[PEAK AIO] Failed to patch {typeName}.NewFrame: {ex.Message}");
             }
+        }
+
+        var inputPrefixMethod = new HarmonyMethod(typeof(ImGuiInputPatch).GetMethod("Prefix",
+            BindingFlags.Public | BindingFlags.Static));
+        var imguiNewFrame = typeof(ImGui).GetMethod("NewFrame", BindingFlags.Public | BindingFlags.Static);
+        if (imguiNewFrame != null)
+        {
+            harmony.Patch(imguiNewFrame, prefix: inputPrefixMethod);
+            Logger.LogInfo("[PEAK AIO] Patched ImGui.NewFrame for input override.");
+        }
+        else
+        {
+            Logger.LogWarning("[PEAK AIO] Could not find ImGui.NewFrame to patch for input.");
         }
 
         Logger.LogInfo("Harmony patches applied.");
@@ -161,6 +174,18 @@ public class PeakMod : BaseUnityPlugin
         if (UnityEngine.Input.GetKeyDown(ConfigManager.MenuToggleKey.Value))
         {
             showMenu = !showMenu;
+        }
+
+        if (showMenu)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            ImGuiInputPatch.SetForceInput(true);
+            ImGuiInputPatch.CaptureInput();
+        }
+        else
+        {
+            ImGuiInputPatch.SetForceInput(false);
         }
     }
 
@@ -260,6 +285,8 @@ public class PeakMod : BaseUnityPlugin
             if (!showMenu)
                 return;
 
+            ImGuiInputPatch.ApplyToImGui();
+
             if (!styleApplied)
             {
                 ApplyCustomStyle();
@@ -272,6 +299,7 @@ public class PeakMod : BaseUnityPlugin
             // Set window position and size
             ImGui.SetNextWindowPos(new System.Numerics.Vector2(20, 20), ImGuiCond.Once);
             ImGui.SetNextWindowSize(new System.Numerics.Vector2(500, 300), ImGuiCond.Once);
+            ImGui.SetNextWindowFocus();
 
             if (ImGui.Begin("PEAK AIO##Main", ImGuiWindowFlags.NoCollapse))
             {
@@ -859,6 +887,7 @@ public class PeakMod : BaseUnityPlugin
                 ImGui.EndChild();
             }
 
+            ImGuiInputPatch.LogPostNewFrame();
             ImGui.End();
         }
         catch (Exception ex)

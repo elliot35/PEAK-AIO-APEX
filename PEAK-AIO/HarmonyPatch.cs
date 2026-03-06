@@ -170,6 +170,137 @@ public static class CJKFontPatch
     }
 }
 
+public static class ImGuiInputPatch
+{
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
+    [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+    private static extern unsafe void ImGuiIO_AddMouseButtonEvent(ImGuiIO* self, int mouse_button, byte mouse_down);
+
+    [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+    private static extern unsafe void ImGuiIO_AddMouseWheelEvent(ImGuiIO* self, float wheel_x, float wheel_y);
+
+    private const int VK_LBUTTON = 0x01;
+    private const int VK_RBUTTON = 0x02;
+    private const int VK_MBUTTON = 0x04;
+
+    private static bool cachedLButton, cachedRButton, cachedMButton;
+    private static float cachedScroll;
+    private static bool forceInput;
+    private static int logFrames;
+    private static int renderLogFrames;
+    private static bool nativeApiWorks = true;
+
+    public static void SetForceInput(bool enabled) => forceInput = enabled;
+
+    public static void CaptureInput()
+    {
+        cachedLButton = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+        cachedRButton = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+        cachedMButton = (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0;
+
+        try { cachedScroll = UnityEngine.Input.mouseScrollDelta.y; }
+        catch { cachedScroll = 0f; }
+    }
+
+    public static unsafe void ApplyToImGui()
+    {
+        if (!forceInput) return;
+
+        try
+        {
+            var io = ImGui.GetIO();
+
+            if (nativeApiWorks)
+            {
+                try
+                {
+                    var ioPtr = io.NativePtr;
+                    ImGuiIO_AddMouseButtonEvent(ioPtr, 0, cachedLButton ? (byte)1 : (byte)0);
+                    ImGuiIO_AddMouseButtonEvent(ioPtr, 1, cachedRButton ? (byte)1 : (byte)0);
+                    ImGuiIO_AddMouseButtonEvent(ioPtr, 2, cachedMButton ? (byte)1 : (byte)0);
+                    ImGuiIO_AddMouseWheelEvent(ioPtr, 0f, cachedScroll);
+                }
+                catch
+                {
+                    nativeApiWorks = false;
+                    ConfigManager.Logger.LogWarning("[InputPatch] Native event API failed, using legacy.");
+                }
+            }
+
+            io.MouseDown[0] = cachedLButton;
+            io.MouseDown[1] = cachedRButton;
+            io.MouseDown[2] = cachedMButton;
+            io.MouseWheel = cachedScroll;
+
+            if (logFrames < 3)
+            {
+                logFrames++;
+                ConfigManager.Logger.LogInfo(
+                    $"[InputPatch] nativeApi={nativeApiWorks} " +
+                    $"imguiPos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
+                    $"displaySize=({io.DisplaySize.X:F0},{io.DisplaySize.Y:F0})");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (logFrames < 5)
+            {
+                logFrames++;
+                ConfigManager.Logger.LogError($"[InputPatch] Error: {ex}");
+            }
+        }
+    }
+
+    public static void LogPostNewFrame()
+    {
+        if (!forceInput) return;
+        if (renderLogFrames >= 15) return;
+
+        try
+        {
+            var io = ImGui.GetIO();
+            var winPos = ImGui.GetWindowPos();
+            var winSize = ImGui.GetWindowSize();
+            bool winHovered = ImGui.IsWindowHovered(ImGuiHoveredFlags.RootAndChildWindows | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
+            bool anyItemHovered = ImGui.IsAnyItemHovered();
+            bool winFocused = ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows);
+            bool rectHover = ImGui.IsMouseHoveringRect(
+                winPos,
+                new System.Numerics.Vector2(winPos.X + winSize.X, winPos.Y + winSize.Y),
+                false);
+
+            if (cachedLButton)
+            {
+                renderLogFrames++;
+                ConfigManager.Logger.LogInfo(
+                    $"[InputPatch-Render] CLICK " +
+                    $"winHovered={winHovered} rectHover={rectHover} winFocused={winFocused} " +
+                    $"wantCapture={io.WantCaptureMouse} configFlags=0x{(int)io.ConfigFlags:X} " +
+                    $"imguiPos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
+                    $"winPos=({winPos.X:F0},{winPos.Y:F0}) winSize=({winSize.X:F0},{winSize.Y:F0})");
+            }
+            else if (renderLogFrames < 5)
+            {
+                renderLogFrames++;
+                ConfigManager.Logger.LogInfo(
+                    $"[InputPatch-Render] " +
+                    $"winHovered={winHovered} rectHover={rectHover} winFocused={winFocused} " +
+                    $"wantCapture={io.WantCaptureMouse} configFlags=0x{(int)io.ConfigFlags:X} " +
+                    $"imguiPos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
+                    $"winPos=({winPos.X:F0},{winPos.Y:F0}) winSize=({winSize.X:F0},{winSize.Y:F0})");
+            }
+        }
+        catch { }
+    }
+
+    public static void Prefix()
+    {
+        ApplyToImGui();
+    }
+}
+
 [HarmonyPatch(typeof(CharacterAfflictions), "UpdateWeight")]
 public class Patch_UpdateWeight
 {

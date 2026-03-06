@@ -11,11 +11,12 @@
 ![中文](https://img.shields.io/badge/lang-简体中文-red)
 ![日本語](https://img.shields.io/badge/lang-日本語-green)
 ![한국어](https://img.shields.io/badge/lang-한국어-orange)
+![Italiano](https://img.shields.io/badge/lang-Italiano-brightgreen)
 [![Thunderstore](https://img.shields.io/thunderstore/v/k1r_gamer/PEAK_AIO_APEX?style=flat&label=Thunderstore)](https://thunderstore.io/c/peak/p/k1r_gamer/PEAK_AIO_APEX/)
 
 An all-in-one mod menu for [PEAK](https://store.steampowered.com/app/2873498/PEAK/) that brings together player enhancements, inventory tools, teleportation, world interaction, and lobby control in a clean, tabbed ImGui interface. Inspired by PEAK-AIO.
 
-Supports **English**, **简体中文**, **日本語**, and **한국어**.
+Supports **English**, **简体中文**, **日本語**, **한국어**, and **Italiano**.
 
 ---
 
@@ -107,7 +108,7 @@ Supports **English**, **简体中文**, **日本語**, and **한국어**.
 ### Step 2 — Install DearImGuiInjection
 
 1. Download [DearImGuiInjection](https://thunderstore.io/c/peak/p/penswer/DearImGuiInjection/) from Thunderstore.
-2. Place the `DearImGuiInjection.dll` into `BepInEx/plugins/`.
+2. Place the `DearImGuiInjection` into `BepInEx/plugins/`.
 
 ### Step 3 — Install PEAK AIO
 
@@ -124,7 +125,7 @@ Your final `BepInEx/plugins/` folder should look like:
 
 ```
 BepInEx/plugins/
-├── DearImGuiInjection.dll
+├── DearImGuiInjection
 └── PEAK-AIO.dll
 ```
 
@@ -175,7 +176,7 @@ To change the hotkey, replace `Insert` with any valid [UnityEngine.KeyCode](http
 ```ini
 [UI]
 
-## Language: 0=English, 1=简体中文, 2=日本語, 3=한국어
+## Language: 0=English, 1=简体中文, 2=日本語, 3=한국어, 4=Italiano
 LanguageIndex = 0
 ```
 
@@ -222,7 +223,7 @@ The **World** tab lists all luggage and containers within 300 meters. You can re
 
 | Issue | Solution |
 |---|---|
-| Menu doesn't appear | Make sure you're running **DirectX 12** (not Vulkan). Check that both `DearImGuiInjection.dll` and `PEAK-AIO.dll` are in `BepInEx/plugins/`. |
+| Menu doesn't appear | Make sure you're running **DirectX 12** (not Vulkan). Check that both `DearImGuiInjection` and `PEAK-AIO.dll` are in `BepInEx/plugins/`. |
 | Insert key doesn't work | Another program may be capturing the key. Change the hotkey in the config file (see [Configuration](#configuration)). |
 | Game crashes on launch | Verify you're using **BepInEx 5.4.23.3** (not 6.x). Remove any conflicting mods from the plugins folder. |
 | Config file doesn't exist | Run the game once with the mod installed. The file is generated automatically at `BepInEx/config/com.onigremlin.peakaio.cfg`. |
