@@ -185,6 +185,15 @@ public static class ImGuiInputPatch
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
 
+    [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+    private static extern unsafe void ImGuiIO_AddMouseButtonEvent(ImGuiIO* self, int mouse_button, byte mouse_down);
+
+    [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+    private static extern unsafe void ImGuiIO_AddMousePosEvent(ImGuiIO* self, float pos_x, float pos_y);
+
+    [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
+    private static extern unsafe void ImGuiIO_AddMouseWheelEvent(ImGuiIO* self, float wheel_x, float wheel_y);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT { public int X, Y; }
 
@@ -197,28 +206,10 @@ public static class ImGuiInputPatch
     private static float cachedScroll;
     private static bool forceInput;
     private static int logFrames;
-
-    private static MethodInfo addMouseBtnMethod;
-    private static MethodInfo addMousePosMethod;
-    private static MethodInfo addMouseWheelMethod;
-    private static bool eventApiChecked;
-    private static bool hasEventApi;
+    private static int renderLogFrames;
+    private static bool nativeApiWorks = true;
 
     public static void SetForceInput(bool enabled) => forceInput = enabled;
-
-    private static void InitEventApi()
-    {
-        if (eventApiChecked) return;
-        eventApiChecked = true;
-
-        addMouseBtnMethod = typeof(ImGuiIOPtr).GetMethod("AddMouseButtonEvent");
-        addMousePosMethod = typeof(ImGuiIOPtr).GetMethod("AddMousePosEvent");
-        addMouseWheelMethod = typeof(ImGuiIOPtr).GetMethod("AddMouseWheelEvent");
-        hasEventApi = addMouseBtnMethod != null;
-
-        ConfigManager.Logger.LogInfo(
-            $"[InputPatch] Event API: {(hasEventApi ? "available" : "not available, using legacy")}");
-    }
 
     public static void CaptureInput()
     {
@@ -238,24 +229,30 @@ public static class ImGuiInputPatch
         catch { cachedScroll = 0f; }
     }
 
-    public static void ApplyToImGui()
+    public static unsafe void ApplyToImGui()
     {
         if (!forceInput) return;
 
         try
         {
-            InitEventApi();
             var io = ImGui.GetIO();
 
-            if (hasEventApi)
+            if (nativeApiWorks)
             {
-                object ioBoxed = io;
-                addMousePosMethod.Invoke(ioBoxed, new object[] { cachedMousePos.X, cachedMousePos.Y });
-                addMouseBtnMethod.Invoke(ioBoxed, new object[] { 0, cachedLButton });
-                addMouseBtnMethod.Invoke(ioBoxed, new object[] { 1, cachedRButton });
-                addMouseBtnMethod.Invoke(ioBoxed, new object[] { 2, cachedMButton });
-                if (addMouseWheelMethod != null)
-                    addMouseWheelMethod.Invoke(ioBoxed, new object[] { 0f, cachedScroll });
+                try
+                {
+                    var ioPtr = io.NativePtr;
+                    ImGuiIO_AddMousePosEvent(ioPtr, cachedMousePos.X, cachedMousePos.Y);
+                    ImGuiIO_AddMouseButtonEvent(ioPtr, 0, cachedLButton ? (byte)1 : (byte)0);
+                    ImGuiIO_AddMouseButtonEvent(ioPtr, 1, cachedRButton ? (byte)1 : (byte)0);
+                    ImGuiIO_AddMouseButtonEvent(ioPtr, 2, cachedMButton ? (byte)1 : (byte)0);
+                    ImGuiIO_AddMouseWheelEvent(ioPtr, 0f, cachedScroll);
+                }
+                catch
+                {
+                    nativeApiWorks = false;
+                    ConfigManager.Logger.LogWarning("[InputPatch] Native event API failed, using legacy.");
+                }
             }
 
             io.MousePos = cachedMousePos;
@@ -264,18 +261,11 @@ public static class ImGuiInputPatch
             io.MouseDown[2] = cachedMButton;
             io.MouseWheel = cachedScroll;
 
-            if (cachedLButton && logFrames < 10)
+            if (logFrames < 3)
             {
                 logFrames++;
                 ConfigManager.Logger.LogInfo(
-                    $"[InputPatch] CLICK pos=({cachedMousePos.X:F0},{cachedMousePos.Y:F0}) " +
-                    $"eventApi={hasEventApi} WantCapture={io.WantCaptureMouse}");
-            }
-            else if (logFrames < 3)
-            {
-                logFrames++;
-                ConfigManager.Logger.LogInfo(
-                    $"[InputPatch] pos=({cachedMousePos.X:F0},{cachedMousePos.Y:F0}) eventApi={hasEventApi}");
+                    $"[InputPatch] pos=({cachedMousePos.X:F0},{cachedMousePos.Y:F0}) nativeApi={nativeApiWorks}");
             }
         }
         catch (Exception ex)
@@ -286,6 +276,29 @@ public static class ImGuiInputPatch
                 ConfigManager.Logger.LogError($"[InputPatch] Error: {ex}");
             }
         }
+    }
+
+    public static void LogPostNewFrame()
+    {
+        if (!forceInput || !cachedLButton) return;
+        if (renderLogFrames >= 10) return;
+
+        try
+        {
+            renderLogFrames++;
+            var io = ImGui.GetIO();
+            bool isClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
+            bool isDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
+            bool isReleased = ImGui.IsMouseReleased(ImGuiMouseButton.Left);
+            bool anyHovered = ImGui.IsAnyItemHovered();
+
+            ConfigManager.Logger.LogInfo(
+                $"[InputPatch-Render] down0={io.MouseDown[0]} clicked={isClicked} " +
+                $"isDown={isDown} released={isReleased} " +
+                $"anyHovered={anyHovered} " +
+                $"mousePos=({io.MousePos.X:F0},{io.MousePos.Y:F0})");
+        }
+        catch { }
     }
 
     public static void Prefix()

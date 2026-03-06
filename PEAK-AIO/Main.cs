@@ -292,6 +292,7 @@ public class PeakMod : BaseUnityPlugin
                 return;
 
             ImGuiInputPatch.ApplyToImGui();
+            ImGuiInputPatch.LogPostNewFrame();
 
             if (!styleApplied)
             {
