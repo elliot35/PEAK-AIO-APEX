@@ -13,7 +13,7 @@ using Photon.Pun;
 using System.Collections.Generic;
 
 [BepInDependency(DearImGuiInjection.Metadata.GUID)]
-[BepInPlugin("com.onigremlin.peakaio", "PEAK AIO Mod", "1.0.12")]
+[BepInPlugin("com.onigremlin.peakaio", "PEAK AIO Mod", "1.0.13")]
 
 public class PeakMod : BaseUnityPlugin
 {
@@ -167,6 +167,12 @@ public class PeakMod : BaseUnityPlugin
             showMenu = !showMenu;
             cursorVisibleField?.SetValue(null, showMenu);
             updateCursorMethod?.Invoke(null, null);
+        }
+
+        if (showMenu)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
     }
 
