@@ -291,6 +291,8 @@ public class PeakMod : BaseUnityPlugin
             if (!showMenu)
                 return;
 
+            ImGuiInputPatch.ApplyToImGui();
+
             if (!styleApplied)
             {
                 ApplyCustomStyle();

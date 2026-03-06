@@ -175,6 +175,18 @@ public static class ImGuiInputPatch
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
 
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    private static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X, Y; }
+
     private const int VK_LBUTTON = 0x01;
     private const int VK_RBUTTON = 0x02;
     private const int VK_MBUTTON = 0x04;
@@ -183,6 +195,7 @@ public static class ImGuiInputPatch
     private static bool cachedLButton, cachedRButton, cachedMButton;
     private static float cachedScroll;
     private static bool forceInput;
+    private static int logFrames;
 
     public static void SetForceInput(bool enabled) => forceInput = enabled;
 
@@ -192,12 +205,19 @@ public static class ImGuiInputPatch
         cachedRButton = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
         cachedMButton = (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0;
 
-        var pos = UnityEngine.Input.mousePosition;
-        cachedMousePos = new System.Numerics.Vector2(pos.x, Screen.height - pos.y);
-        cachedScroll = UnityEngine.Input.mouseScrollDelta.y;
+        if (GetCursorPos(out POINT screenPt))
+        {
+            POINT clientPt = screenPt;
+            IntPtr hwnd = GetForegroundWindow();
+            if (hwnd != IntPtr.Zero && ScreenToClient(hwnd, ref clientPt))
+                cachedMousePos = new System.Numerics.Vector2(clientPt.X, clientPt.Y);
+        }
+
+        try { cachedScroll = UnityEngine.Input.mouseScrollDelta.y; }
+        catch { cachedScroll = 0f; }
     }
 
-    public static void Prefix()
+    public static void ApplyToImGui()
     {
         if (!forceInput) return;
 
@@ -209,8 +229,29 @@ public static class ImGuiInputPatch
             io.MouseDown[1] = cachedRButton;
             io.MouseDown[2] = cachedMButton;
             io.MouseWheel = cachedScroll;
+
+            if (logFrames < 10)
+            {
+                logFrames++;
+                ConfigManager.Logger.LogInfo(
+                    $"[InputPatch] pos=({cachedMousePos.X:F0},{cachedMousePos.Y:F0}) " +
+                    $"L={cachedLButton} R={cachedRButton} " +
+                    $"readback: down0={io.MouseDown[0]} pos=({io.MousePos.X:F0},{io.MousePos.Y:F0})");
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            if (logFrames < 5)
+            {
+                logFrames++;
+                ConfigManager.Logger.LogError($"[InputPatch] Error: {ex}");
+            }
+        }
+    }
+
+    public static void Prefix()
+    {
+        ApplyToImGui();
     }
 }
 
