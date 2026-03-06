@@ -2,6 +2,7 @@ using HarmonyLib;
 using ImGuiNET;
 using Photon.Pun;
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -197,7 +198,27 @@ public static class ImGuiInputPatch
     private static bool forceInput;
     private static int logFrames;
 
+    private static MethodInfo addMouseBtnMethod;
+    private static MethodInfo addMousePosMethod;
+    private static MethodInfo addMouseWheelMethod;
+    private static bool eventApiChecked;
+    private static bool hasEventApi;
+
     public static void SetForceInput(bool enabled) => forceInput = enabled;
+
+    private static void InitEventApi()
+    {
+        if (eventApiChecked) return;
+        eventApiChecked = true;
+
+        addMouseBtnMethod = typeof(ImGuiIOPtr).GetMethod("AddMouseButtonEvent");
+        addMousePosMethod = typeof(ImGuiIOPtr).GetMethod("AddMousePosEvent");
+        addMouseWheelMethod = typeof(ImGuiIOPtr).GetMethod("AddMouseWheelEvent");
+        hasEventApi = addMouseBtnMethod != null;
+
+        ConfigManager.Logger.LogInfo(
+            $"[InputPatch] Event API: {(hasEventApi ? "available" : "not available, using legacy")}");
+    }
 
     public static void CaptureInput()
     {
@@ -223,29 +244,38 @@ public static class ImGuiInputPatch
 
         try
         {
+            InitEventApi();
             var io = ImGui.GetIO();
+
+            if (hasEventApi)
+            {
+                object ioBoxed = io;
+                addMousePosMethod.Invoke(ioBoxed, new object[] { cachedMousePos.X, cachedMousePos.Y });
+                addMouseBtnMethod.Invoke(ioBoxed, new object[] { 0, cachedLButton });
+                addMouseBtnMethod.Invoke(ioBoxed, new object[] { 1, cachedRButton });
+                addMouseBtnMethod.Invoke(ioBoxed, new object[] { 2, cachedMButton });
+                if (addMouseWheelMethod != null)
+                    addMouseWheelMethod.Invoke(ioBoxed, new object[] { 0f, cachedScroll });
+            }
+
             io.MousePos = cachedMousePos;
             io.MouseDown[0] = cachedLButton;
             io.MouseDown[1] = cachedRButton;
             io.MouseDown[2] = cachedMButton;
             io.MouseWheel = cachedScroll;
 
-            if (cachedLButton && logFrames < 50)
+            if (cachedLButton && logFrames < 10)
             {
                 logFrames++;
                 ConfigManager.Logger.LogInfo(
                     $"[InputPatch] CLICK pos=({cachedMousePos.X:F0},{cachedMousePos.Y:F0}) " +
-                    $"L={cachedLButton} readback: down0={io.MouseDown[0]} " +
-                    $"pos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
-                    $"WantCapture={io.WantCaptureMouse}");
+                    $"eventApi={hasEventApi} WantCapture={io.WantCaptureMouse}");
             }
-            else if (logFrames < 5)
+            else if (logFrames < 3)
             {
                 logFrames++;
                 ConfigManager.Logger.LogInfo(
-                    $"[InputPatch] pos=({cachedMousePos.X:F0},{cachedMousePos.Y:F0}) " +
-                    $"L={cachedLButton} R={cachedRButton} " +
-                    $"readback: down0={io.MouseDown[0]} pos=({io.MousePos.X:F0},{io.MousePos.Y:F0})");
+                    $"[InputPatch] pos=({cachedMousePos.X:F0},{cachedMousePos.Y:F0}) eventApi={hasEventApi}");
             }
         }
         catch (Exception ex)
