@@ -261,26 +261,30 @@ public static class ImGuiInputPatch
         try
         {
             var io = ImGui.GetIO();
+            var winPos = ImGui.GetWindowPos();
+            var winSize = ImGui.GetWindowSize();
+            bool winHovered = ImGui.IsWindowHovered(ImGuiHoveredFlags.RootAndChildWindows | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
+            bool anyItemHovered = ImGui.IsAnyItemHovered();
 
             if (cachedLButton)
             {
                 renderLogFrames++;
                 bool isClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
                 bool isDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
-                bool anyHovered = ImGui.IsAnyItemHovered();
 
                 ConfigManager.Logger.LogInfo(
-                    $"[InputPatch-Render] CLICK down0={io.MouseDown[0]} clicked={isClicked} " +
-                    $"isDown={isDown} anyHovered={anyHovered} " +
+                    $"[InputPatch-Render] CLICK clicked={isClicked} isDown={isDown} " +
+                    $"winHovered={winHovered} anyItemHovered={anyItemHovered} " +
                     $"imguiPos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
-                    $"displaySize=({io.DisplaySize.X:F0},{io.DisplaySize.Y:F0})");
+                    $"winPos=({winPos.X:F0},{winPos.Y:F0}) winSize=({winSize.X:F0},{winSize.Y:F0})");
             }
             else if (renderLogFrames < 5)
             {
                 renderLogFrames++;
                 ConfigManager.Logger.LogInfo(
-                    $"[InputPatch-Render] imguiPos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
-                    $"displaySize=({io.DisplaySize.X:F0},{io.DisplaySize.Y:F0})");
+                    $"[InputPatch-Render] winHovered={winHovered} anyItemHovered={anyItemHovered} " +
+                    $"imguiPos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
+                    $"winPos=({winPos.X:F0},{winPos.Y:F0}) winSize=({winSize.X:F0},{winSize.Y:F0})");
             }
         }
         catch { }

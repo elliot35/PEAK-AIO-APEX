@@ -291,7 +291,6 @@ public class PeakMod : BaseUnityPlugin
             if (!showMenu)
                 return;
 
-            ImGuiInputPatch.LogPostNewFrame();
             ImGuiInputPatch.ApplyToImGui();
 
             if (!styleApplied)
@@ -890,6 +889,7 @@ public class PeakMod : BaseUnityPlugin
                 ImGui.EndChild();
             }
 
+            ImGuiInputPatch.LogPostNewFrame();
             ImGui.End();
         }
         catch (Exception ex)
