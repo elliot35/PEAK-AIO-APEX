@@ -2,7 +2,6 @@ using HarmonyLib;
 using ImGuiNET;
 using Photon.Pun;
 using System;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -176,32 +175,16 @@ public static class ImGuiInputPatch
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
 
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out POINT lpPoint);
-
-    [DllImport("user32.dll")]
-    private static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
     [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
     private static extern unsafe void ImGuiIO_AddMouseButtonEvent(ImGuiIO* self, int mouse_button, byte mouse_down);
 
     [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
-    private static extern unsafe void ImGuiIO_AddMousePosEvent(ImGuiIO* self, float pos_x, float pos_y);
-
-    [DllImport("cimgui", CallingConvention = CallingConvention.Cdecl)]
     private static extern unsafe void ImGuiIO_AddMouseWheelEvent(ImGuiIO* self, float wheel_x, float wheel_y);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT { public int X, Y; }
 
     private const int VK_LBUTTON = 0x01;
     private const int VK_RBUTTON = 0x02;
     private const int VK_MBUTTON = 0x04;
 
-    private static System.Numerics.Vector2 cachedMousePos;
     private static bool cachedLButton, cachedRButton, cachedMButton;
     private static float cachedScroll;
     private static bool forceInput;
@@ -216,14 +199,6 @@ public static class ImGuiInputPatch
         cachedLButton = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
         cachedRButton = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
         cachedMButton = (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0;
-
-        if (GetCursorPos(out POINT screenPt))
-        {
-            POINT clientPt = screenPt;
-            IntPtr hwnd = GetForegroundWindow();
-            if (hwnd != IntPtr.Zero && ScreenToClient(hwnd, ref clientPt))
-                cachedMousePos = new System.Numerics.Vector2(clientPt.X, clientPt.Y);
-        }
 
         try { cachedScroll = UnityEngine.Input.mouseScrollDelta.y; }
         catch { cachedScroll = 0f; }
@@ -242,7 +217,6 @@ public static class ImGuiInputPatch
                 try
                 {
                     var ioPtr = io.NativePtr;
-                    ImGuiIO_AddMousePosEvent(ioPtr, cachedMousePos.X, cachedMousePos.Y);
                     ImGuiIO_AddMouseButtonEvent(ioPtr, 0, cachedLButton ? (byte)1 : (byte)0);
                     ImGuiIO_AddMouseButtonEvent(ioPtr, 1, cachedRButton ? (byte)1 : (byte)0);
                     ImGuiIO_AddMouseButtonEvent(ioPtr, 2, cachedMButton ? (byte)1 : (byte)0);
@@ -255,7 +229,6 @@ public static class ImGuiInputPatch
                 }
             }
 
-            io.MousePos = cachedMousePos;
             io.MouseDown[0] = cachedLButton;
             io.MouseDown[1] = cachedRButton;
             io.MouseDown[2] = cachedMButton;
@@ -265,7 +238,9 @@ public static class ImGuiInputPatch
             {
                 logFrames++;
                 ConfigManager.Logger.LogInfo(
-                    $"[InputPatch] pos=({cachedMousePos.X:F0},{cachedMousePos.Y:F0}) nativeApi={nativeApiWorks}");
+                    $"[InputPatch] nativeApi={nativeApiWorks} " +
+                    $"imguiPos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
+                    $"displaySize=({io.DisplaySize.X:F0},{io.DisplaySize.Y:F0})");
             }
         }
         catch (Exception ex)
@@ -280,23 +255,33 @@ public static class ImGuiInputPatch
 
     public static void LogPostNewFrame()
     {
-        if (!forceInput || !cachedLButton) return;
-        if (renderLogFrames >= 10) return;
+        if (!forceInput) return;
+        if (renderLogFrames >= 15) return;
 
         try
         {
-            renderLogFrames++;
             var io = ImGui.GetIO();
-            bool isClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
-            bool isDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
-            bool isReleased = ImGui.IsMouseReleased(ImGuiMouseButton.Left);
-            bool anyHovered = ImGui.IsAnyItemHovered();
 
-            ConfigManager.Logger.LogInfo(
-                $"[InputPatch-Render] down0={io.MouseDown[0]} clicked={isClicked} " +
-                $"isDown={isDown} released={isReleased} " +
-                $"anyHovered={anyHovered} " +
-                $"mousePos=({io.MousePos.X:F0},{io.MousePos.Y:F0})");
+            if (cachedLButton)
+            {
+                renderLogFrames++;
+                bool isClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
+                bool isDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
+                bool anyHovered = ImGui.IsAnyItemHovered();
+
+                ConfigManager.Logger.LogInfo(
+                    $"[InputPatch-Render] CLICK down0={io.MouseDown[0]} clicked={isClicked} " +
+                    $"isDown={isDown} anyHovered={anyHovered} " +
+                    $"imguiPos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
+                    $"displaySize=({io.DisplaySize.X:F0},{io.DisplaySize.Y:F0})");
+            }
+            else if (renderLogFrames < 5)
+            {
+                renderLogFrames++;
+                ConfigManager.Logger.LogInfo(
+                    $"[InputPatch-Render] imguiPos=({io.MousePos.X:F0},{io.MousePos.Y:F0}) " +
+                    $"displaySize=({io.DisplaySize.X:F0},{io.DisplaySize.Y:F0})");
+            }
         }
         catch { }
     }
