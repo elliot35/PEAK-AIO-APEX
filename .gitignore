@@ -56,3 +56,5 @@ dkms.conf
 
 # Temporary object files
 PEAK-AIO/obj/
+
+thunderstore/

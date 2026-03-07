@@ -32,6 +32,7 @@ Supports **English**, **简体中文**, **日本語**, **한국어**, and **Ital
 - [Screenshots](#screenshots)
 - [Building from Source](#building-from-source)
 - [Credits](#credits)
+- [Contributors](#contributors)
 - [Disclaimer](#disclaimer)
 
 ---
@@ -278,6 +279,16 @@ The **World** tab lists all luggage and containers within 300 meters. You can re
 - [BepInEx](https://github.com/BepInEx/BepInEx) — Unity modding framework
 - [Penswer](https://github.com/Penswer/Peak-Everything) — insight and guidance
 - [Luluberlu](https://thunderstore.io/c/peak/p/Luluberlu/) — FlyMod example code
+
+---
+
+## Contributors
+
+Thanks to everyone who has contributed to this project!
+
+<a href="https://github.com/elliot35"><img src="https://avatars.githubusercontent.com/u/41864818?v=4" width="60" height="60" style="border-radius:50%" alt="elliot35" /></a>
+<a href="https://github.com/OniSensei"><img src="https://avatars.githubusercontent.com/u/42307760?v=4" width="60" height="60" style="border-radius:50%" alt="OniSensei" /></a>
+<a href="https://github.com/leonardogrimaldi"><img src="https://avatars.githubusercontent.com/u/18250273?v=4" width="60" height="60" style="border-radius:50%" alt="leonardogrimaldi" /></a>
 
 ---
 
