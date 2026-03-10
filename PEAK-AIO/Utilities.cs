@@ -145,15 +145,16 @@ public static class Utilities
                 Globals.playerNames.Clear();
                 Globals.selectedPlayer = -1;
 
-                if (Character.AllCharacters == null)
+                var characters = Character.AllCharacters;
+                if (characters == null || characters.Count == 0)
                     return;
 
-                foreach (var character in Character.AllCharacters)
+                for (int i = 0; i < characters.Count; i++)
                 {
-                    if (character == null) continue;
-
                     try
                     {
+                        var character = characters[i];
+                        if (character == null) continue;
                         string name = character.characterName ?? "Unknown";
                         Globals.allPlayers.Add(character);
                         Globals.playerNames.Add(name);
@@ -178,15 +179,17 @@ public static class Utilities
         {
             try
             {
-                if (Character.AllCharacters == null)
+                var characters = Character.AllCharacters;
+                if (characters == null || characters.Count == 0)
                     return;
 
-                foreach (var character in Character.AllCharacters)
+                for (int i = 0; i < characters.Count; i++)
                 {
-                    if (character == null || character.photonView == null) continue;
-
                     try
                     {
+                        var character = characters[i];
+                        if (character == null || character.photonView == null) continue;
+
                         Vector3 revivePos = character.Ghost != null
                             ? character.Ghost.transform.position
                             : character.Head;
@@ -214,17 +217,26 @@ public static class Utilities
         {
             try
             {
-                if (Character.AllCharacters == null)
+                var characters = Character.AllCharacters;
+                if (characters == null || characters.Count == 0)
                     return;
 
-                foreach (var character in Character.AllCharacters)
+                for (int i = 0; i < characters.Count; i++)
                 {
-                    if (character == null || character.photonView == null) continue;
-                    if (Globals.excludeSelfFromAllActions && character.IsLocal)
-                        continue;
+                    try
+                    {
+                        var character = characters[i];
+                        if (character == null || character.photonView == null) continue;
+                        if (Globals.excludeSelfFromAllActions && character.IsLocal)
+                            continue;
 
-                    Vector3 pos = character.transform.position;
-                    character.photonView.RPC("RPCA_Die", RpcTarget.All, new object[] { pos });
+                        Vector3 pos = character.transform.position;
+                        character.photonView.RPC("RPCA_Die", RpcTarget.All, new object[] { pos });
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError($"[Lobby] Kill failed for a character: {ex.Message}");
+                    }
                 }
 
                 Logger.LogInfo($"[Lobby] Kill All triggered. ExcludeSelf: {Globals.excludeSelfFromAllActions}");
@@ -242,14 +254,26 @@ public static class Utilities
         {
             try
             {
-                if (Character.localCharacter == null || Character.AllCharacters == null)
+                if (Character.localCharacter == null)
+                    return;
+
+                var characters = Character.AllCharacters;
+                if (characters == null || characters.Count == 0)
                     return;
 
                 Vector3 myPos = Character.localCharacter.Head + new Vector3(0f, 4f, 0f);
-                foreach (var character in Character.AllCharacters)
+                for (int i = 0; i < characters.Count; i++)
                 {
-                    if (character == null || character.photonView == null) continue;
-                    character.photonView.RPC("WarpPlayerRPC", RpcTarget.All, new object[] { myPos, true });
+                    try
+                    {
+                        var character = characters[i];
+                        if (character == null || character.photonView == null) continue;
+                        character.photonView.RPC("WarpPlayerRPC", RpcTarget.All, new object[] { myPos, true });
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError($"[Lobby] Warp failed for a character: {ex.Message}");
+                    }
                 }
                 Logger.LogInfo("[Lobby] Warp All To Me triggered.");
             }
@@ -400,53 +424,64 @@ public static class Utilities
 
     public static void RefreshLuggageList()
     {
-        Globals.luggageLabels.Clear();
-        Globals.luggageObject.Clear();
-        Globals.selectedLuggageIndex = -1;
-
-        if (Character.localCharacter == null)
-            return;
-
-        if (Luggage.ALL_LUGGAGE == null)
-            return;
-
-        var allLuggage = new List<(Luggage lug, float distance)>();
-
-        foreach (var lug in Luggage.ALL_LUGGAGE)
+        try
         {
-            if (lug == null) continue;
+            Globals.luggageLabels.Clear();
+            Globals.luggageObject.Clear();
+            Globals.selectedLuggageIndex = -1;
 
-            try
+            var localChar = Character.localCharacter;
+            if (localChar == null)
+                return;
+
+            var luggageList = Luggage.ALL_LUGGAGE;
+            if (luggageList == null || luggageList.Count == 0)
+                return;
+
+            var allLuggage = new List<(Luggage lug, float distance)>();
+            Vector3 headPos = localChar.Head;
+
+            for (int i = 0; i < luggageList.Count; i++)
             {
-                float distance = Vector3.Distance(Character.localCharacter.Head, lug.Center());
-                if (distance <= 300)
+                try
                 {
-                    allLuggage.Add((lug, distance));
+                    var lug = luggageList[i];
+                    if (lug == null) continue;
+
+                    float distance = Vector3.Distance(headPos, lug.Center());
+                    if (distance <= 300)
+                    {
+                        allLuggage.Add((lug, distance));
+                    }
+                }
+                catch
+                {
+                    continue;
                 }
             }
-            catch
+
+            allLuggage.Sort((a, b) => a.distance.CompareTo(b.distance));
+
+            foreach (var (lug, distance) in allLuggage)
             {
-                continue;
+                try
+                {
+                    string name = lug.displayName ?? "Unnamed";
+                    Globals.luggageLabels.Add($"{name} [{distance:F1}m]");
+                    Globals.luggageObject.Add(lug);
+                }
+                catch
+                {
+                    continue;
+                }
             }
+
+            Logger.LogInfo($"[Luggage] Refreshed. Found {Globals.luggageLabels.Count} nearby.");
         }
-
-        allLuggage.Sort((a, b) => a.distance.CompareTo(b.distance));
-
-        foreach (var (lug, distance) in allLuggage)
+        catch (Exception ex)
         {
-            try
-            {
-                string name = lug.displayName ?? "Unnamed";
-                Globals.luggageLabels.Add($"{name} [{distance:F1}m]");
-                Globals.luggageObject.Add(lug);
-            }
-            catch
-            {
-                continue;
-            }
+            ConfigManager.Logger.LogError($"[Luggage] RefreshLuggageList error: {ex.Message}");
         }
-
-        Logger.LogInfo($"[Luggage] Refreshed. Found {Globals.luggageLabels.Count} nearby.");
     }
 
     public static void OpenAllNearbyLuggage()
