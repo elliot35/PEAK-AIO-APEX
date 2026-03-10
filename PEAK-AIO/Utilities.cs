@@ -13,7 +13,7 @@ using Zorro.Core.Serizalization;
 
 public static class Utilities
 {
-    public static ManualLogSource Logger;
+    private static ManualLogSource Logger => ConfigManager.Logger;
 
     public static void GetPlayer()
     {
