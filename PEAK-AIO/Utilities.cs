@@ -145,11 +145,23 @@ public static class Utilities
                 Globals.playerNames.Clear();
                 Globals.selectedPlayer = -1;
 
+                if (Character.AllCharacters == null)
+                    return;
+
                 foreach (var character in Character.AllCharacters)
                 {
                     if (character == null) continue;
-                    Globals.allPlayers.Add(character);
-                    Globals.playerNames.Add(character.characterName ?? "Unknown");
+
+                    try
+                    {
+                        string name = character.characterName ?? "Unknown";
+                        Globals.allPlayers.Add(character);
+                        Globals.playerNames.Add(name);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
                 }
                 Logger.LogInfo($"[PlayerList] Found {Globals.allPlayers.Count} players.");
             }
@@ -164,14 +176,35 @@ public static class Utilities
     {
         UnityMainThreadDispatcher.Enqueue(() =>
         {
-            foreach (var character in Character.AllCharacters)
+            try
             {
-                Vector3 revivePos = character.Ghost != null ? character.Ghost.transform.position : character.Head;
-                character.photonView.RPC("RPCA_ReviveAtPosition", RpcTarget.All, new object[] {
-                revivePos + new Vector3(0f, 4f, 0f), false
-            });
+                if (Character.AllCharacters == null)
+                    return;
+
+                foreach (var character in Character.AllCharacters)
+                {
+                    if (character == null || character.photonView == null) continue;
+
+                    try
+                    {
+                        Vector3 revivePos = character.Ghost != null
+                            ? character.Ghost.transform.position
+                            : character.Head;
+                        character.photonView.RPC("RPCA_ReviveAtPosition", RpcTarget.All, new object[] {
+                            revivePos + new Vector3(0f, 4f, 0f), false, -1
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError($"[Lobby] Revive failed for a character: {ex.Message}");
+                    }
+                }
+                Logger.LogInfo("[Lobby] Revive All triggered.");
             }
-            Logger.LogInfo("[Lobby] Revive All triggered.");
+            catch (Exception ex)
+            {
+                ConfigManager.Logger.LogError(ex);
+            }
         });
     }
 
@@ -179,16 +212,27 @@ public static class Utilities
     {
         UnityMainThreadDispatcher.Enqueue(() =>
         {
-            foreach (var character in Character.AllCharacters)
+            try
             {
-                if (Globals.excludeSelfFromAllActions && character.IsLocal)
-                    continue;
+                if (Character.AllCharacters == null)
+                    return;
 
-                Vector3 pos = character.transform.position;
-                character.photonView.RPC("RPCA_Die", RpcTarget.All, new object[] { pos });
+                foreach (var character in Character.AllCharacters)
+                {
+                    if (character == null || character.photonView == null) continue;
+                    if (Globals.excludeSelfFromAllActions && character.IsLocal)
+                        continue;
+
+                    Vector3 pos = character.transform.position;
+                    character.photonView.RPC("RPCA_Die", RpcTarget.All, new object[] { pos });
+                }
+
+                Logger.LogInfo($"[Lobby] Kill All triggered. ExcludeSelf: {Globals.excludeSelfFromAllActions}");
             }
-
-            Logger.LogInfo($"[Lobby] Kill All triggered. ExcludeSelf: {Globals.excludeSelfFromAllActions}");
+            catch (Exception ex)
+            {
+                ConfigManager.Logger.LogError(ex);
+            }
         });
     }
 
@@ -196,12 +240,23 @@ public static class Utilities
     {
         UnityMainThreadDispatcher.Enqueue(() =>
         {
-            Vector3 myPos = Character.localCharacter.Head + new Vector3(0f, 4f, 0f);
-            foreach (var character in Character.AllCharacters)
+            try
             {
-                character.photonView.RPC("WarpPlayerRPC", RpcTarget.All, new object[] { myPos, true });
+                if (Character.localCharacter == null || Character.AllCharacters == null)
+                    return;
+
+                Vector3 myPos = Character.localCharacter.Head + new Vector3(0f, 4f, 0f);
+                foreach (var character in Character.AllCharacters)
+                {
+                    if (character == null || character.photonView == null) continue;
+                    character.photonView.RPC("WarpPlayerRPC", RpcTarget.All, new object[] { myPos, true });
+                }
+                Logger.LogInfo("[Lobby] Warp All To Me triggered.");
             }
-            Logger.LogInfo("[Lobby] Warp All To Me triggered.");
+            catch (Exception ex)
+            {
+                ConfigManager.Logger.LogError(ex);
+            }
         });
     }
 
@@ -216,10 +271,13 @@ public static class Utilities
             try
             {
                 var target = Globals.allPlayers[Globals.selectedPlayer];
+                if (target == null || target.photonView == null)
+                    return;
+
                 Vector3 revivePos = target.Ghost != null ? target.Ghost.transform.position : target.Head;
                 target.photonView.RPC("RPCA_ReviveAtPosition", RpcTarget.All, new object[] {
-                revivePos + new Vector3(0f, 4f, 0f), false
-            });
+                    revivePos + new Vector3(0f, 4f, 0f), false, -1
+                });
                 Logger.LogInfo($"[Lobby] Revive requested for player index {Globals.selectedPlayer}");
             }
             catch (Exception ex)
@@ -349,27 +407,43 @@ public static class Utilities
         if (Character.localCharacter == null)
             return;
 
+        if (Luggage.ALL_LUGGAGE == null)
+            return;
+
         var allLuggage = new List<(Luggage lug, float distance)>();
 
         foreach (var lug in Luggage.ALL_LUGGAGE)
         {
             if (lug == null) continue;
 
-            float distance = Vector3.Distance(Character.localCharacter.Head, lug.Center());
-            if (distance <= 300)
+            try
             {
-                allLuggage.Add((lug, distance));
+                float distance = Vector3.Distance(Character.localCharacter.Head, lug.Center());
+                if (distance <= 300)
+                {
+                    allLuggage.Add((lug, distance));
+                }
+            }
+            catch
+            {
+                continue;
             }
         }
 
-        // Sort by distance (closest first)
         allLuggage.Sort((a, b) => a.distance.CompareTo(b.distance));
 
         foreach (var (lug, distance) in allLuggage)
         {
-            string name = lug.displayName ?? "Unnamed";
-            Globals.luggageLabels.Add($"{name} [{distance:F1}m]");
-            Globals.luggageObject.Add(lug);
+            try
+            {
+                string name = lug.displayName ?? "Unnamed";
+                Globals.luggageLabels.Add($"{name} [{distance:F1}m]");
+                Globals.luggageObject.Add(lug);
+            }
+            catch
+            {
+                continue;
+            }
         }
 
         Logger.LogInfo($"[Luggage] Refreshed. Found {Globals.luggageLabels.Count} nearby.");
